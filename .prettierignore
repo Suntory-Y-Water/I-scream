@@ -1,0 +1,5 @@
+node_modules
+.next
+__test__/
+coverage/
+html-report
