@@ -1,4 +1,4 @@
-import { Iscream, PREFIX } from '../types';
+import { Iscream, PREFIX } from './types';
 
 /**
  *
