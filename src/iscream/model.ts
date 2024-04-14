@@ -8,7 +8,7 @@ export const getIscream = async (KV: KVNamespace): Promise<Iscream> => {
   const list = await KV.list({ prefix: PREFIX });
 
   if (list.keys.length === 0) {
-    throw new Error('No ice creams found');
+    throw new Error('アイスクリームが一個もないよ！😭');
   }
 
   // リストからランダムにキーを選択
@@ -147,3 +147,36 @@ export const newIscream = async (): Promise<Iscream[]> => {
 export const deleteIscream = async (KV: KVNamespace, id: string) => {
   return KV.delete(`${PREFIX}${id}`);
 };
+
+/**
+ *
+ * @description 保守用:保存されている全てのアイスクリームの情報を削除する
+ */
+export const deleteAllIscream = async (KV: KVNamespace) => {
+  const list = await KV.list({ prefix: PREFIX });
+  for (const key of list.keys) {
+    await KV.delete(key.name);
+  }
+};
+
+export const scheduled: ExportedHandlerScheduledHandler = async (event, env, ctx) => {
+  // ctx.waitUntil(doSomeTaskOnASchedule());
+  console.log('スケジュールされたタスクが実行されました。');
+};
+
+async function doSomeTaskOnASchedule() {
+  const iscream = await newIscream();
+  const response = await fetch('http://127.0.0.1:8787/api/iscream', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(iscream),
+  });
+
+  if (!response.ok) {
+    throw new Error('登録に失敗しました。');
+  }
+
+  return null;
+}

@@ -5,3 +5,6 @@ compatibility_date = "2023-12-01"
 kv_namespaces = [
   { binding = "HONO_ISCREAM", preview_id = "1dc37b9464cd492eb8eefc16986bdccf", id = "0356585f836e40659b9559f678c3e644" }
 ]
+
+# [triggers]
+# crons = ["*/1 * * * *"]
