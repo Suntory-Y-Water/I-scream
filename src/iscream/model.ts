@@ -54,22 +54,22 @@ export const getAllIscream = async (KV: KVNamespace): Promise<Iscream[]> => {
 
 /**
  *
- * @description 新しいアイスクリームの情報を追加する
- * @param {KVNamespace} KV
- * @param {Iscream[]} params
- * @return {*}
+ * @description アイスクリームの情報を新規作成する
  */
 export const createIscream = async (KV: KVNamespace, params: Iscream[]) => {
-  const newIscream: Iscream[] = params.map((param) => ({
-    id: crypto.randomUUID(),
-    itemName: param.itemName,
-    itemPrice: param.itemPrice,
-    itemImage: param.itemImage,
-  }));
+  const newIscream = params.map(async (param) => {
+    const id = crypto.randomUUID();
+    const iscreamData = {
+      id: id,
+      itemName: param.itemName,
+      itemPrice: param.itemPrice,
+      itemImage: param.itemImage,
+    };
+    await KV.put(`${PREFIX}${id}`, JSON.stringify(iscreamData));
+    return iscreamData;
+  });
 
-  await KV.put(`${PREFIX}`, JSON.stringify(newIscream));
-
-  return newIscream;
+  return Promise.all(newIscream); // 非同期処理が完了したデータを返す
 };
 
 /**
@@ -139,17 +139,6 @@ export const newIscream = async (): Promise<Iscream[]> => {
 
 /**
  *
- * @description 指定したIDと一致するアイスクリームの情報を削除する
- * @param {KVNamespace} KV
- * @param {string} id
- * @return {*}
- */
-export const deleteIscream = async (KV: KVNamespace, id: string) => {
-  return KV.delete(`${PREFIX}${id}`);
-};
-
-/**
- *
  * @description 保守用:保存されている全てのアイスクリームの情報を削除する
  */
 export const deleteAllIscream = async (KV: KVNamespace) => {
@@ -158,25 +147,3 @@ export const deleteAllIscream = async (KV: KVNamespace) => {
     await KV.delete(key.name);
   }
 };
-
-export const scheduled: ExportedHandlerScheduledHandler = async (event, env, ctx) => {
-  // ctx.waitUntil(doSomeTaskOnASchedule());
-  console.log('スケジュールされたタスクが実行されました。');
-};
-
-async function doSomeTaskOnASchedule() {
-  const iscream = await newIscream();
-  const response = await fetch('http://127.0.0.1:8787/api/iscream', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(iscream),
-  });
-
-  if (!response.ok) {
-    throw new Error('登録に失敗しました。');
-  }
-
-  return null;
-}
