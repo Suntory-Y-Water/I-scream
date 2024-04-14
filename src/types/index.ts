@@ -12,6 +12,7 @@ export interface Iscream {
 
 export type Bindings = {
   HONO_ISCREAM: KVNamespace;
+  CHANNEL_ACCESS_TOKEN: string;
 };
 
 export const PREFIX = 'v1:iscream:';
