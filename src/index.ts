@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { router } from './iscream/api';
+import { router } from './api';
 import { prettyJSON } from 'hono/pretty-json';
 
 const app = new Hono();
