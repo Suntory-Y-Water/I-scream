@@ -1,21 +1,13 @@
-import { MessageAPIResponseBase, TextMessage, WebhookEvent } from '@line/bot-sdk';
+import { FlexMessage, MessageAPIResponseBase, WebhookEvent } from '@line/bot-sdk';
 import { Hono } from 'hono';
-import { logger } from 'hono/logger';
 import { Bindings, Iscream } from './types';
-import { getIscream, createIscream, newIscream, getAllIscream, deleteAllIscream } from './model';
+import { getIscream, createIscream, newIscream, deleteAllIscream } from './model';
 
 const router = new Hono<{ Bindings: Bindings }>();
-router.use(logger());
 
 // アイスクリームの情報をランダムで1件取得する
 router.get('/', async (c) => {
   const iscream = await getIscream(c.env.HONO_ISCREAM);
-  return c.json(iscream);
-});
-
-// アイスクリームの情報を全件取得する
-router.get('/all', async (c) => {
-  const iscream = await getAllIscream(c.env.HONO_ISCREAM);
   return c.json(iscream);
 });
 
@@ -44,11 +36,12 @@ router.post('/webhook', async (c) => {
   const data = await c.req.json();
   const events: WebhookEvent[] = (data as any).events;
   const accessToken: string = c.env.CHANNEL_ACCESS_TOKEN;
+  const nameSpace = c.env.HONO_ISCREAM;
 
   await Promise.all(
     events.map(async (event: WebhookEvent) => {
       try {
-        await textEventHandler(event, accessToken);
+        await textEventHandler(event, accessToken, nameSpace);
       } catch (err: unknown) {
         if (err instanceof Error) {
           console.error(err);
@@ -65,21 +58,65 @@ router.post('/webhook', async (c) => {
 const textEventHandler = async (
   event: WebhookEvent,
   accessToken: string,
+  KVNamespace: KVNamespace,
 ): Promise<MessageAPIResponseBase | undefined> => {
   if (event.type !== 'message' || event.message.type !== 'text') {
     return;
   }
 
+  if (event.message.text !== '今日のアイスクリーム') {
+    return;
+  }
+
+  // アイスクリームの情報をランダムで取得
+  const iscream = await getIscream(KVNamespace);
+
   const { replyToken } = event;
-  const { text } = event.message;
-  const response: TextMessage = {
-    type: 'text',
-    text,
+  const flexMessage: FlexMessage = {
+    type: 'flex',
+    altText: 'アイスクリーム情報',
+    contents: {
+      type: 'bubble',
+      header: {
+        type: 'box',
+        layout: 'vertical',
+        contents: [],
+      },
+      hero: {
+        type: 'image',
+        url: iscream.itemImage,
+        size: 'full',
+        aspectRatio: '20:13',
+        aspectMode: 'cover',
+      },
+      body: {
+        type: 'box',
+        layout: 'vertical',
+        contents: [
+          {
+            type: 'text',
+            text: iscream.itemName,
+            weight: 'bold',
+            size: 'xl',
+            wrap: true,
+            color: '#333333',
+          },
+          {
+            type: 'text',
+            text: iscream.itemPrice,
+            weight: 'regular',
+            size: 'md',
+            color: '#333333',
+          },
+        ],
+      },
+    },
   };
-  const lineResponse = await fetch('https://api.line.me/v2/bot/message/reply', {
+
+  await fetch('https://api.line.me/v2/bot/message/reply', {
     body: JSON.stringify({
       replyToken: replyToken,
-      messages: [response],
+      messages: [flexMessage],
     }),
     method: 'POST',
     headers: {
@@ -87,10 +124,6 @@ const textEventHandler = async (
       'Content-Type': 'application/json',
     },
   });
-
-  if (!lineResponse.ok) {
-    console.error(lineResponse.statusText);
-  }
 };
 
 export { router };

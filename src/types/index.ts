@@ -13,6 +13,12 @@ export interface Iscream {
 export type Bindings = {
   HONO_ISCREAM: KVNamespace;
   CHANNEL_ACCESS_TOKEN: string;
+  USER_NAME: string;
+  USER_PASS: string;
 };
+
+declare global {
+  function getMiniflareBindings(): Bindings;
+}
 
 export const PREFIX = 'v1:iscream:';
