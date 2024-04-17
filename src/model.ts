@@ -1,4 +1,4 @@
-import { Iscream, PREFIX } from '../types';
+import { Iscream, PREFIX } from './types';
 
 /**
  *
@@ -8,7 +8,7 @@ export const getIscream = async (KV: KVNamespace): Promise<Iscream> => {
   const list = await KV.list({ prefix: PREFIX });
 
   if (list.keys.length === 0) {
-    throw new Error('No ice creams found');
+    throw new Error('アイスクリームが一個もないよ！😭');
   }
 
   // リストからランダムにキーを選択
@@ -19,7 +19,7 @@ export const getIscream = async (KV: KVNamespace): Promise<Iscream> => {
   const iscream: Iscream | null = await KV.get<Iscream>(randomKey.name, 'json');
 
   if (!iscream) {
-    throw new Error('Failed to retrieve the ice cream');
+    throw new Error('そんなアイスクリームはないよ！😭');
   }
 
   return iscream;
@@ -27,55 +27,30 @@ export const getIscream = async (KV: KVNamespace): Promise<Iscream> => {
 
 /**
  *
- * @description 指定したIDと一致するアイスクリームの情報を取得する
- */
-export const getIscreamById = (KV: KVNamespace, id: string): Promise<Iscream | null> => {
-  return KV.get<Iscream>(`${PREFIX}${id}`, 'json');
-};
-
-/**
- *
- * @description 保存されている全てのアイスクリームの情報を取得する
- * @param {KVNamespace} KV
- * @return {*}  {Promise<Iscream[]>}
- */
-export const getAllIscream = async (KV: KVNamespace): Promise<Iscream[]> => {
-  const list = await KV.list({ prefix: PREFIX });
-  const iscreamList: Iscream[] = [];
-
-  for (const key of list.keys) {
-    const value = await KV.get<Iscream>(key.name, 'json');
-    if (value) {
-      iscreamList.push(value);
-    }
-  }
-  return iscreamList;
-};
-
-/**
- *
- * @description 新しいアイスクリームの情報を追加する
- * @param {KVNamespace} KV
- * @param {Iscream[]} params
- * @return {*}
+ * @description アイスクリームの情報を新規作成する
  */
 export const createIscream = async (KV: KVNamespace, params: Iscream[]) => {
-  const newIscream: Iscream[] = params.map((param) => ({
-    id: crypto.randomUUID(),
-    itemName: param.itemName,
-    itemPrice: param.itemPrice,
-    itemImage: param.itemImage,
-  }));
-
-  await KV.put(`${PREFIX}`, JSON.stringify(newIscream));
-
-  return newIscream;
+  try {
+    params.map(async (param) => {
+      const id = crypto.randomUUID();
+      const iscreamData = {
+        id: id,
+        itemName: param.itemName,
+        itemPrice: param.itemPrice,
+        itemImage: param.itemImage,
+      };
+      await KV.put(`${PREFIX}${id}`, JSON.stringify(iscreamData));
+    });
+    return true;
+  } catch (error) {
+    console.error(`データの登録に失敗しました。: ${error}`);
+    return false;
+  }
 };
 
 /**
  *
  * @description セブンイレブンの公式ホームページから、関東地方で販売しているアイスクリームの情報を取得する
- * @return {*}  {Promise<Iscream[]>}
  */
 export const newIscream = async (): Promise<Iscream[]> => {
   const response = await fetch(
@@ -125,8 +100,9 @@ export const newIscream = async (): Promise<Iscream[]> => {
         }
       },
     });
-  // HTMLの書き換えを確実に完了させる
-  await rewriter.transform(response).arrayBuffer();
+
+  // TODO: global.Resposeで型を指定しているが、型が合わないため強引に変換している
+  await rewriter.transform(response as unknown as Response).arrayBuffer();
 
   // 最後の商品が保存されていない場合はここで保存
   if (currentProduct.itemName || currentProduct.itemPrice || currentProduct.itemImage) {
@@ -139,11 +115,16 @@ export const newIscream = async (): Promise<Iscream[]> => {
 
 /**
  *
- * @description 指定したIDと一致するアイスクリームの情報を削除する
- * @param {KVNamespace} KV
- * @param {string} id
- * @return {*}
+ * @description 保守用:保存されている全てのアイスクリームの情報を削除する
  */
-export const deleteIscream = async (KV: KVNamespace, id: string) => {
-  return KV.delete(`${PREFIX}${id}`);
+export const deleteAllIscream = async (KV: KVNamespace) => {
+  try {
+    const list = await KV.list({ prefix: PREFIX });
+    for (const key of list.keys) {
+      await KV.delete(key.name);
+    }
+    return true;
+  } catch (error) {
+    return false;
+  }
 };

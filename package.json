@@ -1,7 +1,9 @@
 {
   "scripts": {
     "dev": "wrangler dev src/index.ts",
-    "deploy": "wrangler deploy --minify src/index.ts"
+    "deploy": "wrangler deploy --minify src/index.ts",
+    "tail": "wrangler tail",
+    "test": "jest --verbose --watch"
   },
   "dependencies": {
     "@honojs/validator": "^0.1.2",
@@ -9,6 +11,11 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20240403.0",
-    "wrangler": "^3.47.0"
+    "@line/bot-sdk": "^9.1.0",
+    "@types/jest": "^29.5.12",
+    "esbuild-jest": "^0.5.0",
+    "jest": "^29.7.0",
+    "jest-environment-miniflare": "^2.14.2",
+    "wrangler": "^3.50.0"
   }
 }

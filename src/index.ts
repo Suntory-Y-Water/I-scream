@@ -1,9 +1,12 @@
 import { Hono } from 'hono';
-import { iscream } from './iscream/api';
+import { router } from './api';
 import { prettyJSON } from 'hono/pretty-json';
+import { Bindings } from './types';
 
-const app = new Hono();
-app.use('/api/iscream', prettyJSON());
-app.route('/api/iscream', iscream);
+const app = new Hono<{ Bindings: Bindings }>();
+app.use('/', prettyJSON());
+app.route('/', router);
 
-export default app;
+export default {
+  fetch: app.fetch,
+};
