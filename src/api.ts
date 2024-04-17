@@ -14,8 +14,11 @@ router.get('/', async (c) => {
 // アイスクリームの情報を登録する。
 router.post('/', async (c) => {
   const params = await c.req.json<Iscream[]>();
-  const newIscream = await createIscream(c.env.HONO_ISCREAM, params);
-  return c.json(newIscream, 201);
+  const isCreate = await createIscream(c.env.HONO_ISCREAM, params);
+  if (!isCreate) {
+    return new Response(null, { status: 500 });
+  }
+  return new Response(null, { status: 201 });
 });
 
 // 最新のアイスクリーム情報を取得する。
@@ -24,8 +27,7 @@ router.get('/new', async (c) => {
   return c.json(iscream);
 });
 
-// 保守用のエンドポイント: アイスクリームの情報を全件削除する。
-// TODO: 認証認可はデプロイ前に設定すること
+// アイスクリームの情報を全件削除する。
 router.delete('/', async (c) => {
   await deleteAllIscream(c.env.HONO_ISCREAM);
   return new Response(null, { status: 204 });
@@ -52,7 +54,7 @@ router.post('/webhook', async (c) => {
       }
     }),
   );
-  return c.json({ message: 'ok' });
+  return c.json({ message: 'ok' }, 200);
 });
 
 const textEventHandler = async (
@@ -123,6 +125,9 @@ const textEventHandler = async (
       Authorization: `Bearer ${accessToken}`,
       'Content-Type': 'application/json',
     },
+  }).catch((err) => {
+    console.log(`LINE API error: ${err}`);
+    return null;
   });
 };
 
