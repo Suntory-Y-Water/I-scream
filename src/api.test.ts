@@ -1,5 +1,6 @@
 import { Iscream, PREFIX } from './types';
 import { router as app } from './api';
+import { createIscream, deleteAllIscream, newIscream } from './model';
 
 const env = getMiniflareBindings();
 
@@ -40,52 +41,39 @@ describe('アイスクリーム情報を登録するAPI', () => {
   test('アイスクリーム情報を登録する', async () => {
     const newIscream: Iscream[] = [
       {
-        id: 'uuid2',
         itemName: '森永　パルム　チョコレート',
         itemPrice: '160円（税込172.80円）',
         itemImage:
           'https://img.7api-01.dp1.sej.co.jp/item-image/450390/09C2FFA85EAEA2B4A6F374EA2CC1727F.jpg',
       },
       {
-        id: 'uuid3',
         itemName: '森永　パルム　チョコレート',
         itemPrice: '160円（税込172.80円）',
         itemImage:
           'https://img.7api-01.dp1.sej.co.jp/item-image/450390/09C2FFA85EAEA2B4A6F374EA2CC1727F.jpg',
       },
     ];
-    const res = await app.fetch(
-      new Request('http://localhost', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newIscream),
-      }),
-      env,
-    );
-    expect(res.status).toBe(201);
+    const res = await createIscream(env.HONO_ISCREAM, newIscream);
+    expect(res).toBe(true);
+  });
+
+  test('アイスクリームの削除処理が正常処理が正常終了するか', async () => {
+    // 正常処理
+    const res1 = await deleteAllIscream(env.HONO_ISCREAM);
+    expect(res1).toBe(true);
   });
 
   test('全てのアイスクリームを削除して、データが取得できないか確認', async () => {
-    const res1 = await app.fetch(
-      new Request('http://localhost', {
-        method: 'DELETE',
-      }),
-      env,
-    );
-    expect(res1.status).toBe(204);
+    const deleteKV = await deleteAllIscream(env.HONO_ISCREAM);
+    expect(deleteKV).toBe(true);
 
-    const res2 = await app.fetch(new Request('http://localhost'), env);
-    expect(res2.status).toBe(500);
+    const getIscreamData = await app.fetch(new Request('http://localhost'), env);
+    expect(getIscreamData.status).toBe(500);
   });
 
   test('アイスクリームを削除して登録後、ランダムで取得できるか', async () => {
-    const res1 = await app.fetch(
-      new Request('http://localhost', {
-        method: 'DELETE',
-      }),
-      env,
-    );
-    expect(res1.status).toBe(204);
+    const deleteKV = await deleteAllIscream(env.HONO_ISCREAM);
+    expect(deleteKV).toBe(true);
 
     const newIscream: Iscream[] = [
       {
@@ -95,20 +83,13 @@ describe('アイスクリーム情報を登録するAPI', () => {
           'https://img.7api-01.dp1.sej.co.jp/item-image/450390/09C2FFA85EAEA2B4A6F374EA2CC1727F.jpg',
       },
     ];
-    const res2 = await app.fetch(
-      new Request('http://localhost', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newIscream),
-      }),
-      env,
-    );
-    expect(res2.status).toBe(201);
+    const postsIscream = await createIscream(env.HONO_ISCREAM, newIscream);
+    expect(postsIscream).toBe(true);
 
-    const res3 = await app.fetch(new Request('http://localhost'), env);
-    expect(res3.status).toBe(200);
+    const response = await app.fetch(new Request('http://localhost'), env);
+    expect(response.status).toBe(200);
 
-    const body = (await res3.json()) as Iscream;
+    const body = (await response.json()) as Iscream;
 
     expect(body).toEqual({
       id: body.id,
@@ -120,29 +101,14 @@ describe('アイスクリーム情報を登録するAPI', () => {
   });
 
   test('最新のアイスクリーム情報を取得後、元のKVを削除してから登録する。', async () => {
+    const deleteKV = await deleteAllIscream(env.HONO_ISCREAM);
+    expect(deleteKV).toBe(true);
+
     // 最新のアイスクリーム情報を取得
-    const res = await app.fetch(new Request('http://localhost/new'), env);
-    const resBody = (await res.json()) as Iscream[];
-    expect(res.status).toBe(200);
+    const newIscreamData = await newIscream();
+    expect(newIscreamData).not.toBeNull();
 
-    // 既に作成済みのKVを削除
-    const deleteResponse = await app.fetch(
-      new Request('http://localhost', {
-        method: 'DELETE',
-      }),
-      env,
-    );
-    expect(deleteResponse.status).toBe(204);
-
-    // 最新のアイスクリーム情報を登録
-    const createResponse = await app.fetch(
-      new Request('http://localhost', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(resBody),
-      }),
-      env,
-    );
-    expect(createResponse.status).toBe(201);
+    const res = await createIscream(env.HONO_ISCREAM, newIscreamData);
+    expect(res).toBe(true);
   });
 });
