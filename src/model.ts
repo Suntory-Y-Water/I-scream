@@ -148,6 +148,4 @@ export const doSomeTaskOnASchedule = async (apiUrl: string, token: string) => {
     console.log(`LINE API error: ${err}`);
     return null;
   });
-
-  return true;
 };
