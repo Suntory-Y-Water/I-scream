@@ -13,6 +13,8 @@ export interface Iscream {
 export type Bindings = {
   HONO_ISCREAM: KVNamespace;
   CHANNEL_ACCESS_TOKEN: string;
+  API_URL: string;
+  BEARER_TOKEN: string;
 };
 
 declare global {

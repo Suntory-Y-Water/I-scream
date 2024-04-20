@@ -31,16 +31,19 @@ export const getIscream = async (KV: KVNamespace): Promise<Iscream> => {
  */
 export const createIscream = async (KV: KVNamespace, params: Iscream[]) => {
   try {
-    params.map(async (param) => {
-      const id = crypto.randomUUID();
-      const iscreamData = {
-        id: id,
-        itemName: param.itemName,
-        itemPrice: param.itemPrice,
-        itemImage: param.itemImage,
-      };
-      await KV.put(`${PREFIX}${id}`, JSON.stringify(iscreamData));
-    });
+    // 非同期処理が終了するまで待機
+    await Promise.all(
+      params.map(async (param) => {
+        const id = crypto.randomUUID();
+        const iscreamData = {
+          id: id,
+          itemName: param.itemName,
+          itemPrice: param.itemPrice,
+          itemImage: param.itemImage,
+        };
+        await KV.put(`${PREFIX}${id}`, JSON.stringify(iscreamData));
+      }),
+    );
     return true;
   } catch (error) {
     console.error(`データの登録に失敗しました。: ${error}`);
@@ -115,7 +118,7 @@ export const newIscream = async (): Promise<Iscream[]> => {
 
 /**
  *
- * @description 保守用:保存されている全てのアイスクリームの情報を削除する
+ * @description 保存されている全てのアイスクリームの情報を削除する
  */
 export const deleteAllIscream = async (KV: KVNamespace) => {
   try {
@@ -127,4 +130,24 @@ export const deleteAllIscream = async (KV: KVNamespace) => {
   } catch (error) {
     return false;
   }
+};
+
+/**
+ *
+ * @description スケジューリング関数。定時になったら指定されたAPIを叩く
+ * @param {string} apiUrl
+ */
+export const doSomeTaskOnASchedule = async (apiUrl: string, token: string) => {
+  await fetch(`${apiUrl}/scheduled`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+  }).catch((err) => {
+    console.log(`LINE API error: ${err}`);
+    return null;
+  });
+
+  return true;
 };
