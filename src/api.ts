@@ -39,75 +39,77 @@ const textEventHandler = async (
   event: WebhookEvent,
   accessToken: string,
   KVNamespace: KVNamespace,
-): Promise<MessageAPIResponseBase | undefined> => {
+): Promise<void> => {
   if (event.type !== 'message' || event.message.type !== 'text') {
     return;
   }
 
-  if (event.message.text !== '今日のアイスクリーム') {
-    return;
+  const { replyToken } = event;
+  const receivedText = event.message.text;
+  let messages = [];
+
+  if (receivedText === '今日のアイスクリーム') {
+    const iscream = await getIscream(KVNamespace);
+    messages.push({
+      type: 'flex',
+      altText: 'アイスクリーム情報',
+      contents: {
+        type: 'bubble',
+        hero: {
+          type: 'image',
+          url: iscream.itemImage,
+          size: 'full',
+          aspectRatio: '20:13',
+          aspectMode: 'cover',
+        },
+        body: {
+          type: 'box',
+          layout: 'vertical',
+          contents: [
+            {
+              type: 'text',
+              text: iscream.itemName,
+              weight: 'bold',
+              size: 'xl',
+              wrap: true,
+              color: '#333333',
+            },
+            {
+              type: 'text',
+              text: iscream.itemPrice,
+              weight: 'regular',
+              size: 'md',
+              color: '#333333',
+            },
+          ],
+        },
+      },
+    });
+  } else {
+    messages.push({
+      type: 'text',
+      text: '「今日のアイスクリーム」と送信すると、アイスクリームの情報をお届けします！🍨',
+    });
   }
 
-  // アイスクリームの情報をランダムで取得
-  const iscream = await getIscream(KVNamespace);
+  // メッセージをLINE APIを通じて送信
+  await sendMessage(replyToken, messages, accessToken);
+};
 
-  const { replyToken } = event;
-  const flexMessage: FlexMessage = {
-    type: 'flex',
-    altText: 'アイスクリーム情報',
-    contents: {
-      type: 'bubble',
-      header: {
-        type: 'box',
-        layout: 'vertical',
-        contents: [],
-      },
-      hero: {
-        type: 'image',
-        url: iscream.itemImage,
-        size: 'full',
-        aspectRatio: '20:13',
-        aspectMode: 'cover',
-      },
-      body: {
-        type: 'box',
-        layout: 'vertical',
-        contents: [
-          {
-            type: 'text',
-            text: iscream.itemName,
-            weight: 'bold',
-            size: 'xl',
-            wrap: true,
-            color: '#333333',
-          },
-          {
-            type: 'text',
-            text: iscream.itemPrice,
-            weight: 'regular',
-            size: 'md',
-            color: '#333333',
-          },
-        ],
-      },
-    },
-  };
-
+// LINE APIにメッセージを送信する共通関数
+async function sendMessage(replyToken: string, messages: Array<any>, accessToken: string) {
   await fetch('https://api.line.me/v2/bot/message/reply', {
-    body: JSON.stringify({
-      replyToken: replyToken,
-      messages: [flexMessage],
-    }),
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${accessToken}`,
       'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
     },
-  }).catch((err) => {
-    console.log(`LINE API error: ${err}`);
-    return null;
-  });
-};
+    body: JSON.stringify({
+      replyToken,
+      messages,
+    }),
+  }).catch((err) => console.error('LINE API error:', err));
+}
 
 router.post('scheduled', async (c) => {
   const deleteResponse = await deleteAllIscream(c.env.HONO_ISCREAM);
