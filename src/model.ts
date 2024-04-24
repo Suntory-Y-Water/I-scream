@@ -1,4 +1,4 @@
-import { Iscream, PREFIX } from './types';
+import { Bindings, Iscream, PREFIX } from './types';
 
 /**
  *
@@ -134,18 +134,36 @@ export const deleteAllIscream = async (KV: KVNamespace) => {
 
 /**
  *
- * @description スケジューリング関数。定時になったら指定されたAPIを叩く
+ * @description スケジューリング関数。定時になったらアイスクリーム情報を初期化する。
  * @param {string} apiUrl
  */
-export const doSomeTaskOnASchedule = async (apiUrl: string, token: string) => {
-  await fetch(`${apiUrl}/scheduled`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-  }).catch((err) => {
-    console.log(`LINE API error: ${err}`);
-    return null;
-  });
+export const doSomeTaskOnASchedule = async (env: Bindings) => {
+  try {
+    const deleteResponse = await deleteAllIscream(env.HONO_ISCREAM);
+    if (deleteResponse !== true) {
+      console.error('アイスクリームのデータを削除できませんでした。');
+      return;
+    }
+
+    console.log('アイスクリーム情報を削除しました。');
+
+    const newIscreamResponse = await newIscream();
+    if (newIscreamResponse.length === 0) {
+      console.error('アイスクリーム情報を取得できませんでした');
+      return;
+    }
+    console.log('アイスクリーム情報を取得しました。');
+
+    const createResponse = await createIscream(env.HONO_ISCREAM, newIscreamResponse);
+    if (createResponse !== true) {
+      console.error('アイスクリームの登録に失敗しました。');
+      return;
+    }
+
+    console.log('アイスクリーム情報を最新化しました。');
+    return;
+  } catch (error) {
+    console.error(`エラーが発生しました: ${error}`);
+    return;
+  }
 };
